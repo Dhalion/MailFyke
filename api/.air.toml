@@ -1,0 +1,14 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/mailfyke ."
+bin = "tmp/mailfyke"
+include_ext = ["go"]
+exclude_dir = ["tmp", "internal/database/queries"]
+
+[log]
+time = false
+
+[screen]
+clear_on_rebuild = true
