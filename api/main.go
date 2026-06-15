@@ -13,7 +13,7 @@ func main() {
 		newServerCmd(cfg),
 		newMigrateCmd(cfg),
 	)
-	root.Execute()
+	_ = root.Execute()
 }
 
 func newServerCmd(cfg *config.Config) *cobra.Command {

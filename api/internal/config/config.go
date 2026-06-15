@@ -11,7 +11,7 @@ type Config struct {
 	DatabaseURL       string
 	ListenAddr        string
 	SMTPListenAddr    string
-	SMTPMaxMailSize   int64
+	SMTPMaxMailSize   int
 	SMTPMaxConns      int
 	LogLevel          string
 	JWTSecret         string

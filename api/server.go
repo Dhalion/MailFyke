@@ -9,6 +9,7 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
 	"net/http"
+	"os"
 )
 
 func runServer(cfg *config.Config) error {
@@ -27,8 +28,7 @@ func runServer(cfg *config.Config) error {
 	h := handler.New(pool, cfg)
 	r.Get("/api/healthz", h.Health)
 
-	// TODO: mount SMTP server
-
-	zerolog.Info().Str("addr", cfg.ListenAddr).Msg("starting server")
+	log := zerolog.New(os.Stderr).With().Timestamp().Logger()
+	log.Info().Str("addr", cfg.ListenAddr).Msg("starting server")
 	return http.ListenAndServe(cfg.ListenAddr, r)
 }
