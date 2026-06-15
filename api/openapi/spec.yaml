@@ -1,0 +1,145 @@
+openapi: "3.1.0"
+info:
+  title: MailFyke API
+  version: "0.1.0"
+servers:
+  - url: http://localhost:5789
+paths:
+  /api/healthz:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: OK
+  /api/auth/login:
+    post:
+      operationId: authLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Login successful
+  /api/users/me/organizations:
+    get:
+      operationId: listOrganizations
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of organizations
+  /api/organizations/{orgId}/emails:
+    get:
+      operationId: listEmails
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Paginated list of emails
+  /api/organizations/{orgId}/emails/unread-count:
+    get:
+      operationId: unreadCount
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Unread count
+  /api/organizations/{orgId}/emails/{id}:
+    get:
+      operationId: getEmail
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Email detail
+    delete:
+      operationId: deleteEmail
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Deleted
+  /api/organizations/{orgId}/emails/{id}/read:
+    put:
+      operationId: markRead
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                read:
+                  type: boolean
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Marked as read/unread
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

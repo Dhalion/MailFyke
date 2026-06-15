@@ -1,0 +1,15 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "sql/queries/"
+    schema: "sql/schema.sql"
+    gen:
+      go:
+        package: "queries"
+        out: "internal/database/queries"
+        sql_package: "pgx/v5"
+        emit_pointers_for_null_types: true
+        emit_exported_queries: true
+        overrides:
+          - column: "emails.rcpt_to"
+            go_type: "github.com/jackc/pgx/v5/pgtype.FlatArray[string]"
