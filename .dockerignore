@@ -1,0 +1,9 @@
+.git
+.gitignore
+.env*
+node_modules/
+api/tmp/
+frontend/dist/
+.idea/
+*.md
+LICENSE

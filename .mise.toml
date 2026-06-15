@@ -1,0 +1,70 @@
+[env]
+DATABASE_URL = "postgres://mailfyke:mailfyke@localhost:5432/mailfyke?sslmode=disable"
+LISTEN_ADDR = ":5789"
+SMTP_LISTEN_ADDR = ":2525"
+SMTP_MAX_MAIL_SIZE = "26214400"
+SMTP_MAX_CONNECTIONS = "100"
+LOG_LEVEL = "debug"
+JWT_SECRET = "dev-secret-change-in-production"
+
+[tools]
+go = "1.26"
+node = "26"
+sqlc = "1.31"
+oapi-codegen = "2.7"
+air = "latest"
+golangci-lint = "2"
+oxlint = "latest"
+
+[tasks.setup]
+description = "Install all dependencies"
+run = "cd api && go mod download && cd ../frontend && npm install"
+
+[tasks.up]
+description = "Start infrastructure (PostgreSQL)"
+run = "docker compose up -d"
+
+[tasks.down]
+description = "Stop infrastructure"
+run = "docker compose down"
+
+[tasks.migrate]
+description = "Run database migrations"
+depends = ["up"]
+run = "cd api && go run . migrate up"
+
+[tasks.fixtures]
+description = "Seed test data"
+depends = ["migrate"]
+run = "cd api && go run . fixtures"
+
+[tasks.generate]
+description = "Regenerate sqlc + oapi-codegen + frontend types"
+run = [
+    "cd api && sqlc generate",
+    "cd api && oapi-codegen --config oapi-codegen.yaml openapi/spec.yaml",
+    "cd frontend && npx openapi-typescript ../api/openapi/spec.yaml -o src/types/api.d.ts",
+]
+
+[tasks.dev]
+description = "Start API with hot-reload"
+depends = ["up"]
+run = [
+    "cd api && air --conf .air.toml",
+]
+
+[tasks.lint]
+description = "Run all linters"
+run = [
+    "cd api && golangci-lint run",
+    "cd frontend && npx oxlint",
+]
+
+[tasks.test]
+description = "Run Go tests"
+depends = ["up"]
+run = "cd api && go test ./..."
+
+[tasks.build]
+description = "Build the API binary"
+run = "cd api && go build -o ./tmp/mailfyke ."

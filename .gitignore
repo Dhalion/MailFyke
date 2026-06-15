@@ -1,0 +1,15 @@
+.env
+.env.local
+node_modules/
+
+api/tmp/
+api/.env
+
+frontend/dist/
+frontend/.env
+
+.idea/
+.vscode/
+
+*.log
+.DS_Store
