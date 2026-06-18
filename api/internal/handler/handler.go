@@ -1,18 +1,23 @@
 package handler
 
 import (
-	"github.com/chris/MailFyke/internal/config"
+	"github.com/Dhalion/MailFyke/internal/api"
+	"github.com/Dhalion/MailFyke/internal/config"
+	"github.com/Dhalion/MailFyke/internal/database/queries"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Handler struct {
-	pool *pgxpool.Pool
-	cfg  *config.Config
+	api.Unimplemented
+	pool    *pgxpool.Pool
+	queries *queries.Queries
+	cfg     *config.Config
 }
 
 func New(pool *pgxpool.Pool, cfg *config.Config) *Handler {
 	return &Handler{
-		pool: pool,
-		cfg:  cfg,
+		pool:    pool,
+		queries: queries.New(pool),
+		cfg:     cfg,
 	}
 }

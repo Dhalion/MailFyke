@@ -1,14 +1,34 @@
 package main
 
 import (
-	"github.com/chris/MailFyke/internal/config"
-	"github.com/rs/zerolog"
+	"context"
 	"os"
+
+	"github.com/Dhalion/MailFyke/internal/config"
+	"github.com/Dhalion/MailFyke/internal/database"
+	"github.com/Dhalion/MailFyke/internal/migrations"
+	"github.com/rs/zerolog"
 )
 
 func runMigrate(cfg *config.Config) error {
 	log := zerolog.New(os.Stderr).With().Timestamp().Logger()
-	log.Info().Str("url", cfg.DatabaseURL).Msg("running migrations")
-	// TODO: implement golang-migrate
+	ctx := context.Background()
+
+	pool, err := database.NewPool(cfg.DatabaseURL)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+
+	up, err := migrations.FS.ReadFile("000001_initial.up.sql")
+	if err != nil {
+		return err
+	}
+
+	if _, err := pool.Exec(ctx, string(up)); err != nil {
+		return err
+	}
+
+	log.Info().Msg("migrations complete")
 	return nil
 }

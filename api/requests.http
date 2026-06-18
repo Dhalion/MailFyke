@@ -1,0 +1,77 @@
+@baseUrl = http://localhost:5789
+
+### Health check
+GET {{baseUrl}}/api/healthz
+
+### Login as admin
+# @no-redirect
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@mailfyke.dev",
+  "password": "admin123"
+}
+
+> {%
+    client.global.set("token", response.body.token);
+    client.global.set("orgId", response.body.organizations[0].id);
+    client.log("Token: " + response.body.token);
+    client.log("OrgId: " + response.body.organizations[0].id);
+%}
+
+### List my organizations
+GET {{baseUrl}}/api/users/me/organizations
+Authorization: Bearer {{token}}
+
+### List emails (page 1, 50 per page)
+# Captures first email's id as :emailId for subsequent requests
+GET {{baseUrl}}/api/organizations/{{orgId}}/emails?page=1&per_page=50
+Authorization: Bearer {{token}}
+
+> {%
+    if (response.body.length > 0) {
+        client.global.set("emailId", response.body[0].id);
+        client.log("emailId: " + response.body[0].id);
+    }
+%}
+
+### Unread count
+GET {{baseUrl}}/api/organizations/{{orgId}}/emails/unread-count
+Authorization: Bearer {{token}}
+
+### Get single email (replace :emailId after listing)
+GET {{baseUrl}}/api/organizations/{{orgId}}/emails/{{emailId}}
+Authorization: Bearer {{token}}
+
+### Delete email (replace :emailId)
+DELETE {{baseUrl}}/api/organizations/{{orgId}}/emails/{{emailId}}
+Authorization: Bearer {{token}}
+
+### Mark email as unread (replace :emailId)
+PUT {{baseUrl}}/api/organizations/{{orgId}}/emails/{{emailId}}/read
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "read": false
+}
+
+### Login as regular user
+# @no-redirect
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@mailfyke.dev",
+  "password": "user123"
+}
+
+> {%
+    client.global.set("token2", response.body.token);
+    client.log("Token2: " + response.body.token);
+%}
+
+### List orgs as regular user
+GET {{baseUrl}}/api/users/me/organizations
+Authorization: Bearer {{token2}}

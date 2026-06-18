@@ -8,3 +8,6 @@ SELECT * FROM organizations ORDER BY name;
 
 -- name: GetOrganizationBySlug :one
 SELECT * FROM organizations WHERE slug = $1 LIMIT 1;
+
+-- name: CreateOrganization :one
+INSERT INTO organizations (name, slug) VALUES ($1, $2) RETURNING *;

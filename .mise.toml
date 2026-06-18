@@ -50,7 +50,7 @@ run = [
 description = "Start API with hot-reload"
 depends = ["up"]
 run = [
-    "cd api && air --conf .air.toml",
+    "cd api && air -c .air.toml",
 ]
 
 [tasks.lint]

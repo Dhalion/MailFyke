@@ -2,22 +2,26 @@ package middleware
 
 import (
 	"context"
-	"github.com/go-chi/chi/v5"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
-const OrgIDKey contextKey = "org_id"
+const CtxOrgID ctxKey = "org_id"
+
+func OrgIDFromCtx(ctx context.Context) string {
+	v, _ := ctx.Value(CtxOrgID).(string)
+	return v
+}
 
 func RequireOrgMembership(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		orgID := chi.URLParam(r, "orgId")
 		if orgID == "" {
-			http.Error(w, "missing orgId", http.StatusBadRequest)
+			http.Error(w, `{"error":"missing orgId"}`, http.StatusBadRequest)
 			return
 		}
-
-		// TODO: verify user (from context) is member of this org or is admin
-		ctx := context.WithValue(r.Context(), OrgIDKey, orgID)
+		ctx := context.WithValue(r.Context(), CtxOrgID, orgID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

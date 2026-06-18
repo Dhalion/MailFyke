@@ -1,10 +1,11 @@
 package config
 
 import (
-	"github.com/joho/godotenv"
-	"github.com/rs/zerolog"
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
+	"github.com/rs/zerolog"
 )
 
 type Config struct {
@@ -13,6 +14,9 @@ type Config struct {
 	SMTPListenAddr    string
 	SMTPMaxMailSize   int
 	SMTPMaxConns      int
+	SMTPAllowInsecure bool
+	SMTPDomain        string
+	SMTPDebug         bool
 	LogLevel          string
 	JWTSecret         string
 }
@@ -21,13 +25,16 @@ func Load() *Config {
 	_ = godotenv.Load()
 
 	cfg := &Config{
-		DatabaseURL:    getEnv("DATABASE_URL", "postgres://mailfyke:mailfyke@localhost:5432/mailfyke?sslmode=disable"),
-		ListenAddr:     getEnv("LISTEN_ADDR", ":5789"),
-		SMTPListenAddr: getEnv("SMTP_LISTEN_ADDR", ":2525"),
-		SMTPMaxMailSize: getEnvInt("SMTP_MAX_MAIL_SIZE", 26214400),
-		SMTPMaxConns:   getEnvInt("SMTP_MAX_CONNECTIONS", 100),
-		LogLevel:       getEnv("LOG_LEVEL", "debug"),
-		JWTSecret:      getEnv("JWT_SECRET", "dev-secret-change-in-production"),
+		DatabaseURL:       getEnv("DATABASE_URL", "postgres://mailfyke:mailfyke@localhost:5432/mailfyke?sslmode=disable"),
+		ListenAddr:        getEnv("LISTEN_ADDR", ":5789"),
+		SMTPListenAddr:    getEnv("SMTP_LISTEN_ADDR", ":2525"),
+		SMTPMaxMailSize:   getEnvInt("SMTP_MAX_MAIL_SIZE", 26214400),
+		SMTPMaxConns:      getEnvInt("SMTP_MAX_CONNECTIONS", 100),
+		SMTPAllowInsecure: getEnvBool("SMTP_ALLOW_INSECURE", false),
+		SMTPDomain:        getEnv("SMTP_DOMAIN", "localhost"),
+		SMTPDebug:         getEnvBool("SMTP_DEBUG", false),
+		LogLevel:          getEnv("LOG_LEVEL", "debug"),
+		JWTSecret:         getEnv("JWT_SECRET", "dev-secret-change-in-production"),
 	}
 
 	initLogger(cfg.LogLevel)
@@ -49,6 +56,20 @@ func getEnvInt(key string, fallback int) int {
 		}
 	}
 	return fallback
+}
+
+func getEnvBool(key string, fallback bool) bool {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return fallback
+	}
+
+	return b
 }
 
 func initLogger(level string) {

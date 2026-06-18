@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/chris/MailFyke/internal/config"
+	"github.com/Dhalion/MailFyke/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -12,6 +12,7 @@ func main() {
 	root.AddCommand(
 		newServerCmd(cfg),
 		newMigrateCmd(cfg),
+		newFixturesCmd(cfg),
 	)
 	_ = root.Execute()
 }
@@ -32,6 +33,16 @@ func newMigrateCmd(cfg *config.Config) *cobra.Command {
 		Short: "Run database migrations",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runMigrate(cfg)
+		},
+	}
+}
+
+func newFixturesCmd(cfg *config.Config) *cobra.Command {
+	return &cobra.Command{
+		Use:   "fixtures",
+		Short: "Seed test data into the database",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runFixtures(cfg)
 		},
 	}
 }

@@ -1,8 +1,9 @@
 package handler
 
 import (
-	"github.com/chris/MailFyke/internal/httputil"
 	"net/http"
+
+	"github.com/Dhalion/MailFyke/internal/httputil"
 )
 
 func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {

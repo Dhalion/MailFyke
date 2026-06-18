@@ -26,13 +26,13 @@
 
 <script setup lang="ts">
 import { computed } from "vue"
-import { useAuthStore } from "../stores/auth"
+import { useAuthStore, type Organization } from "../stores/auth"
 
 const auth = useAuthStore()
 const organizations = computed(() => auth.organizations)
 const selectedOrg = computed(() => auth.selectedOrg)
 
-function selectOrg(org: any) {
+function selectOrg(org: Organization) {
   auth.selectedOrg = org
 }
 </script>

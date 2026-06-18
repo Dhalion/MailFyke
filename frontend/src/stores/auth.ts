@@ -1,7 +1,7 @@
 import { defineStore } from "pinia"
 import { ref } from "vue"
 
-interface Organization {
+export interface Organization {
   id: string
   name: string
   slug: string
@@ -21,7 +21,7 @@ export const useAuthStore = defineStore("auth", () => {
   const organizations = ref<Organization[]>([])
   const selectedOrg = ref<Organization | null>(null)
 
-  async function login(email: string, password: string) {
+  async function login(_email: string, _password: string) {
     // TODO: implement API call
     token.value = "placeholder"
   }
