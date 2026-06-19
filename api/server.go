@@ -31,7 +31,7 @@ func runServer(cfg *config.Config) error {
 	defer func(smtpServer *smtp.Server) {
 		err := smtpServer.Stop()
 		if err != nil {
-
+			panic("failed to stop smtp server")
 		}
 	}(smtpServer)
 

@@ -47,6 +47,7 @@ func (s *Server) Start(addr string) error {
 
 	go func() {
 		s.log.Info().Msg(fmt.Sprintf("Starting SMTP Server on %s:%s", s.config.SMTPDomain, s.config.SMTPListenAddr))
+		s.log.Info().Msg(fmt.Sprintf("Settings: %+v", s.config))
 		err := s.srv.ListenAndServe()
 		if err != nil {
 			s.log.Error().Err(err).Msg("smtp server error")

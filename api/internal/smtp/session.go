@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jhillyerd/enmime/v2"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Session struct {
@@ -23,7 +24,7 @@ type Session struct {
 	config       *config.Config
 	q            *queries.Queries
 	msg          *message
-	orgId        string
+	orgId        pgtype.UUID
 	smtpUsername string
 }
 
@@ -45,12 +46,22 @@ func (s *Session) Auth(mech string) (sasl.Server, error) {
 		if identity != "" && identity != username {
 			return errors.New("invalid identity")
 		}
-		if username != "username" || password != "password" {
-			return errors.New("invalid username or password")
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		smtpCreds, err := s.q.GetSMTPCredentialByUsername(ctx, username)
+		if err != nil {
+			return errors.New("invalid credentials")
 		}
+
+		if err := bcrypt.CompareHashAndPassword([]byte(smtpCreds.PasswordHash), []byte(password)); err != nil {
+			return errors.New("invalid credentials")
+		}
+
 		s.auth = true
 		s.smtpUsername = username
-		s.orgId = "organization-id"
+		s.orgId = smtpCreds.OrganizationID
 		return nil
 	}), nil
 }
@@ -82,7 +93,7 @@ func (s *Session) Data(r io.Reader) error {
 
 	err = persistMailInDb(s)
 	if err != nil {
-		return err
+		return errors.New("internal error")
 	}
 
 	return nil
@@ -100,14 +111,8 @@ func persistMailInDb(s *Session) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	var orgID pgtype.UUID
-	err := orgID.Scan(s.orgId)
-	if err != nil {
-		return err
-	}
-
-	_, err = s.q.InsertEmail(ctx, queries.InsertEmailParams{
-		OrganizationID: orgID,
+	_, err := s.q.InsertEmail(ctx, queries.InsertEmailParams{
+		OrganizationID: s.orgId,
 		SmtpUsername:   s.smtpUsername,
 		MailFrom:       s.msg.From,
 		RcptTo:         s.msg.To,
