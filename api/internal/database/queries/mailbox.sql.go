@@ -73,7 +73,7 @@ type InsertEmailParams struct {
 	HeadersJson    []byte
 	RawEml         string
 	HasAttachments bool
-	SizeBytes      int
+	SizeBytes      int32
 }
 
 func (q *Queries) InsertEmail(ctx context.Context, arg InsertEmailParams) (Email, error) {

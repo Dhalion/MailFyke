@@ -38,11 +38,11 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *Server {
 
 func (s *Server) Start(addr string) error {
 	s.srv.AllowInsecureAuth = s.config.SMTPAllowInsecure
-	s.srv.Addr = s.config.SMTPListenAddr
+	s.srv.Addr = addr
 	s.srv.Domain = s.config.SMTPDomain
 
 	if s.config.SMTPDebug {
-		s.srv.Debug = s.log
+		s.srv.Debug = zerolog.ConsoleWriter{Out: os.Stdout}
 	}
 
 	go func() {

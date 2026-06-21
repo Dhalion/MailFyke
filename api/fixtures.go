@@ -60,15 +60,24 @@ func runFixtures(cfg *config.Config) error {
 		return fmt.Errorf("smtp hash: %w", err)
 	}
 
-	cred, err := q.CreateSMTPCredential(ctx, queries.CreateSMTPCredentialParams{
+	account, err := q.CreateAccount(ctx, queries.CreateAccountParams{
 		OrganizationID: org.ID,
 		Username:       "tenant_a",
-		PasswordHash:   string(smtpHash),
 	})
 	if err != nil {
-		return fmt.Errorf("create smtp cred: %w", err)
+		return fmt.Errorf("create smtp account: %w", err)
 	}
-	log.Printf("created SMTP credential %s", cred.Username)
+	log.Printf("created SMTP account %s", account.Username)
+
+	_, err = q.CreateAuthMethod(ctx, queries.CreateAuthMethodParams{
+		AccountID: account.ID,
+		Type:      "password",
+		Hash:      string(smtpHash),
+	})
+	if err != nil {
+		return fmt.Errorf("create smtp password method: %w", err)
+	}
+	log.Printf("created SMTP password method for %s", account.Username)
 
 	userHash, err := bcrypt.GenerateFromPassword([]byte("user123"), bcrypt.DefaultCost)
 	if err != nil {
@@ -111,7 +120,7 @@ func runFixtures(cfg *config.Config) error {
 
 		if _, err := q.InsertEmail(ctx, queries.InsertEmailParams{
 			OrganizationID: org.ID,
-			SmtpUsername:   cred.Username,
+			SmtpUsername:   account.Username,
 			MailFrom:       e.from,
 			RcptTo:         []string{e.rcpt},
 			Subject:        e.subject,
@@ -120,7 +129,7 @@ func runFixtures(cfg *config.Config) error {
 			HeadersJson:    []byte(headers),
 			RawEml:         raw,
 			HasAttachments: false,
-			SizeBytes:      int(len(raw)),
+			SizeBytes:      int32(len(raw)),
 		}); err != nil {
 			return fmt.Errorf("insert email: %w", err)
 		}

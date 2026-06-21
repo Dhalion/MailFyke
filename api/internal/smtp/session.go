@@ -38,35 +38,54 @@ type message struct {
 }
 
 func (s *Session) AuthMechanisms() []string {
-	return []string{sasl.Plain}
+	return []string{sasl.Plain, XOAUTH2}
 }
 
 func (s *Session) Auth(mech string) (sasl.Server, error) {
-	return sasl.NewPlainServer(func(identity, username, password string) error {
-		if identity != "" && identity != username {
-			return errors.New("invalid identity")
-		}
+	switch mech {
+	case sasl.Plain:
+		return sasl.NewPlainServer(func(identity, username, password string) error {
+			if identity != "" && identity != username {
+				return smtp.ErrAuthFailed
+			}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
 
-		smtpCreds, err := s.q.GetSMTPCredentialByUsername(ctx, username)
-		if err != nil {
-			return errors.New("invalid credentials")
-		}
+			account, err := s.q.GetAccountByUsername(ctx, username)
+			if err != nil {
+				return err
+			}
 
-		if err := bcrypt.CompareHashAndPassword([]byte(smtpCreds.PasswordHash), []byte(password)); err != nil {
-			return errors.New("invalid credentials")
-		}
+			passMethod, err := s.q.GetPasswordMethodByAccountID(ctx, account.ID)
+			if err != nil {
+				return smtp.ErrAuthFailed
+			}
 
-		s.auth = true
-		s.smtpUsername = username
-		s.orgId = smtpCreds.OrganizationID
-		return nil
-	}), nil
+			if err := bcrypt.CompareHashAndPassword([]byte(passMethod.Hash), []byte(password)); err != nil {
+				return smtp.ErrAuthFailed
+			}
+
+			s.auth = true
+			s.smtpUsername = username
+			s.orgId = passMethod.AccountID
+			return nil
+		}), nil
+	case XOAUTH2:
+		return NewXOAuth2Server(func(opts XOAuth2Options) error {
+			// TODO: implement XOAuth check
+			return nil
+		}), nil
+	default:
+		return nil, smtp.ErrAuthUnsupported
+	}
 }
 
 func (s *Session) Mail(from string, opts *smtp.MailOptions) error {
+	if !s.auth {
+		return smtp.ErrAuthRequired
+	}
+
 	s.Reset()
 	s.msg.From = from
 	s.msg.Opts = opts
@@ -74,12 +93,20 @@ func (s *Session) Mail(from string, opts *smtp.MailOptions) error {
 }
 
 func (s *Session) Rcpt(to string, opts *smtp.RcptOptions) error {
+	if !s.auth {
+		return smtp.ErrAuthRequired
+	}
+
 	s.msg.To = append(s.msg.To, to)
 	s.msg.RcptOpts = append(s.msg.RcptOpts, opts)
 	return nil
 }
 
 func (s *Session) Data(r io.Reader) error {
+	if !s.auth {
+		return smtp.ErrAuthRequired
+	}
+
 	rawBytes, err := io.ReadAll(r)
 	if err != nil {
 		return err
@@ -122,7 +149,7 @@ func persistMailInDb(s *Session) error {
 		HeadersJson:    []byte("{}"),
 		RawEml:         string(s.msg.Data),
 		HasAttachments: len(s.msg.envelope.Attachments) > 0,
-		SizeBytes:      len(s.msg.Data),
+		SizeBytes:      int32(len(s.msg.Data)),
 	})
 
 	if err != nil {

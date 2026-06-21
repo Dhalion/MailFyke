@@ -32,12 +32,21 @@ type Organization struct {
 	CreatedAt pgtype.Timestamptz
 }
 
-type SmtpCredential struct {
+type SmtpAccount struct {
 	ID             pgtype.UUID
 	OrganizationID pgtype.UUID
 	Username       string
-	PasswordHash   string
 	CreatedAt      pgtype.Timestamptz
+}
+
+type SmtpAuthMethod struct {
+	ID          pgtype.UUID
+	AccountID   pgtype.UUID
+	Type        string
+	Hash        string
+	Description string
+	ExpiresAt   pgtype.Timestamptz
+	CreatedAt   pgtype.Timestamptz
 }
 
 type User struct {

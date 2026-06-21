@@ -20,13 +20,26 @@ CREATE TABLE user_organization (
     PRIMARY KEY (organization_id, user_id)
 );
 
-CREATE TABLE smtp_credentials (
+CREATE TABLE smtp_accounts (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     username        TEXT NOT NULL UNIQUE,
-    password_hash   TEXT NOT NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE smtp_auth_methods (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    account_id  UUID NOT NULL REFERENCES smtp_accounts(id) ON DELETE CASCADE,
+    type        TEXT NOT NULL,
+    hash        TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    expires_at  TIMESTAMPTZ,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX idx_one_password_per_account
+    ON smtp_auth_methods (account_id)
+    WHERE type = 'password';
 
 CREATE TABLE emails (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -26,24 +26,57 @@ func (q *Queries) AddUserToOrganization(ctx context.Context, arg AddUserToOrgani
 	return err
 }
 
-const CreateSMTPCredential = `-- name: CreateSMTPCredential :one
-INSERT INTO smtp_credentials (organization_id, username, password_hash) VALUES ($1, $2, $3) RETURNING id, organization_id, username, password_hash, created_at
+const CreateAccount = `-- name: CreateAccount :one
+INSERT INTO smtp_accounts (organization_id, username)
+VALUES ($1, $2) RETURNING id, organization_id, username, created_at
 `
 
-type CreateSMTPCredentialParams struct {
+type CreateAccountParams struct {
 	OrganizationID pgtype.UUID
 	Username       string
-	PasswordHash   string
 }
 
-func (q *Queries) CreateSMTPCredential(ctx context.Context, arg CreateSMTPCredentialParams) (SmtpCredential, error) {
-	row := q.db.QueryRow(ctx, CreateSMTPCredential, arg.OrganizationID, arg.Username, arg.PasswordHash)
-	var i SmtpCredential
+func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (SmtpAccount, error) {
+	row := q.db.QueryRow(ctx, CreateAccount, arg.OrganizationID, arg.Username)
+	var i SmtpAccount
 	err := row.Scan(
 		&i.ID,
 		&i.OrganizationID,
 		&i.Username,
-		&i.PasswordHash,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const CreateAuthMethod = `-- name: CreateAuthMethod :one
+INSERT INTO smtp_auth_methods (account_id, type, hash, description, expires_at)
+VALUES ($1, $2, $3, $4, $5) RETURNING id, account_id, type, hash, description, expires_at, created_at
+`
+
+type CreateAuthMethodParams struct {
+	AccountID   pgtype.UUID
+	Type        string
+	Hash        string
+	Description string
+	ExpiresAt   pgtype.Timestamptz
+}
+
+func (q *Queries) CreateAuthMethod(ctx context.Context, arg CreateAuthMethodParams) (SmtpAuthMethod, error) {
+	row := q.db.QueryRow(ctx, CreateAuthMethod,
+		arg.AccountID,
+		arg.Type,
+		arg.Hash,
+		arg.Description,
+		arg.ExpiresAt,
+	)
+	var i SmtpAuthMethod
+	err := row.Scan(
+		&i.ID,
+		&i.AccountID,
+		&i.Type,
+		&i.Hash,
+		&i.Description,
+		&i.ExpiresAt,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -72,32 +105,90 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
-const GetSMTPCredentialByUsername = `-- name: GetSMTPCredentialByUsername :one
-SELECT sc.id, sc.organization_id, sc.username, sc.password_hash, sc.created_at, o.slug AS organization_slug
-FROM smtp_credentials sc
-JOIN organizations o ON o.id = sc.organization_id
-WHERE sc.username = $1 LIMIT 1
+const DeleteAuthMethod = `-- name: DeleteAuthMethod :exec
+DELETE FROM smtp_auth_methods WHERE id = $1
 `
 
-type GetSMTPCredentialByUsernameRow struct {
+func (q *Queries) DeleteAuthMethod(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, DeleteAuthMethod, id)
+	return err
+}
+
+const GetAccountByUsername = `-- name: GetAccountByUsername :one
+SELECT a.id, a.organization_id, a.username, a.created_at, o.slug AS organization_slug
+FROM smtp_accounts a
+JOIN organizations o ON o.id = a.organization_id
+WHERE a.username = $1 LIMIT 1
+`
+
+type GetAccountByUsernameRow struct {
 	ID               pgtype.UUID
 	OrganizationID   pgtype.UUID
 	Username         string
-	PasswordHash     string
 	CreatedAt        pgtype.Timestamptz
 	OrganizationSlug string
 }
 
-func (q *Queries) GetSMTPCredentialByUsername(ctx context.Context, username string) (GetSMTPCredentialByUsernameRow, error) {
-	row := q.db.QueryRow(ctx, GetSMTPCredentialByUsername, username)
-	var i GetSMTPCredentialByUsernameRow
+func (q *Queries) GetAccountByUsername(ctx context.Context, username string) (GetAccountByUsernameRow, error) {
+	row := q.db.QueryRow(ctx, GetAccountByUsername, username)
+	var i GetAccountByUsernameRow
 	err := row.Scan(
 		&i.ID,
 		&i.OrganizationID,
 		&i.Username,
-		&i.PasswordHash,
 		&i.CreatedAt,
 		&i.OrganizationSlug,
+	)
+	return i, err
+}
+
+const GetAuthMethodsByAccountID = `-- name: GetAuthMethodsByAccountID :many
+SELECT id, account_id, type, hash, description, expires_at, created_at FROM smtp_auth_methods WHERE account_id = $1
+`
+
+func (q *Queries) GetAuthMethodsByAccountID(ctx context.Context, accountID pgtype.UUID) ([]SmtpAuthMethod, error) {
+	rows, err := q.db.Query(ctx, GetAuthMethodsByAccountID, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SmtpAuthMethod
+	for rows.Next() {
+		var i SmtpAuthMethod
+		if err := rows.Scan(
+			&i.ID,
+			&i.AccountID,
+			&i.Type,
+			&i.Hash,
+			&i.Description,
+			&i.ExpiresAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const GetPasswordMethodByAccountID = `-- name: GetPasswordMethodByAccountID :one
+SELECT id, account_id, type, hash, description, expires_at, created_at FROM smtp_auth_methods WHERE account_id = $1 AND type = 'password' LIMIT 1
+`
+
+func (q *Queries) GetPasswordMethodByAccountID(ctx context.Context, accountID pgtype.UUID) (SmtpAuthMethod, error) {
+	row := q.db.QueryRow(ctx, GetPasswordMethodByAccountID, accountID)
+	var i SmtpAuthMethod
+	err := row.Scan(
+		&i.ID,
+		&i.AccountID,
+		&i.Type,
+		&i.Hash,
+		&i.Description,
+		&i.ExpiresAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }
