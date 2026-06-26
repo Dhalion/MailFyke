@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/Dhalion/MailFyke/internal/database/queries"
 	"github.com/emersion/go-sasl"
 	"github.com/emersion/go-smtp"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jhillyerd/enmime/v2"
@@ -54,7 +56,7 @@ func (s *Session) Auth(mech string) (sasl.Server, error) {
 
 			account, err := s.q.GetAccountByUsername(ctx, username)
 			if err != nil {
-				return err
+				return smtp.ErrAuthFailed
 			}
 
 			passMethod, err := s.q.GetPasswordMethodByAccountID(ctx, account.ID)
@@ -68,12 +70,46 @@ func (s *Session) Auth(mech string) (sasl.Server, error) {
 
 			s.auth = true
 			s.smtpUsername = username
-			s.orgId = passMethod.AccountID
+			s.orgId = account.OrganizationID
 			return nil
 		}), nil
 	case XOAUTH2:
 		return NewXOAuth2Server(func(opts XOAuth2Options) error {
-			// TODO: implement XOAuth check
+			token, err := jwt.Parse(opts.TokenBytes, func(t *jwt.Token) (interface{}, error) {
+				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+				}
+				return []byte(s.config.JWTSecret), nil
+			})
+			if err != nil {
+				return smtp.ErrAuthFailed
+			}
+
+			claims, ok := token.Claims.(jwt.MapClaims)
+			if !ok || !token.Valid {
+				return smtp.ErrAuthFailed
+			}
+
+			username, _ := claims["username"].(string)
+			orgId, _ := claims["org_id"].(string)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+			account, err := s.q.GetAccountByUsername(ctx, username)
+			if err != nil {
+				return smtp.ErrAuthFailed
+			}
+
+			// Reject Auth on unexpected OrgId mismatch
+			if account.OrganizationID.String() != orgId {
+				return smtp.ErrAuthFailed
+			}
+
+			s.auth = true
+			s.smtpUsername = account.Username
+			s.orgId = account.OrganizationID
+
 			return nil
 		}), nil
 	default:

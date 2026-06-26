@@ -14,6 +14,7 @@ const XOAuth2SplitChar = 0x01 // ^A
 const XOAuth2MaxParts = 3
 const XOAuthUserKey = "user="
 const XOAuthTokenKey = "auth="
+const XOAuthBearerPrefix = "Bearer "
 
 type XOAuth2Error struct {
 	Status  string `json:"status"`
@@ -22,10 +23,7 @@ type XOAuth2Error struct {
 }
 
 type XOAuth2Options struct {
-	Username string
-	Token    string
-	Host     string
-	Port     int
+	TokenBytes string
 }
 
 func (err *XOAuth2Error) Error() string {
@@ -67,22 +65,23 @@ func (a *XOAuth2Server) Next(response []byte) (challenge []byte, done bool, err 
 	if len(parts) != 3 {
 		return a.fail("Invalid response")
 	}
-	user, found := bytes.CutPrefix(parts[0], []byte(XOAuthUserKey))
-	if !found {
-		return a.fail("Invalid response")
-	}
-	token, found := bytes.CutPrefix(parts[1], []byte(XOAuthTokenKey))
 
+	_, found := bytes.CutPrefix(parts[0], []byte(XOAuthUserKey))
 	if !found {
 		return a.fail("Invalid response")
 	}
+
+	tokenBytes, found := bytes.CutPrefix(parts[1], []byte(XOAuthTokenKey))
+	if !found || !bytes.HasPrefix(tokenBytes, []byte(XOAuthBearerPrefix)) {
+		return a.fail("Invalid response")
+	}
+	tokenBytes = bytes.TrimPrefix(tokenBytes, []byte(XOAuthBearerPrefix))
 
 	opts := XOAuth2Options{
-		Username: string(user),
-		Token:    string(token),
+		TokenBytes: string(tokenBytes),
 	}
 
-	if len(opts.Username) == 0 || len(opts.Token) == 0 {
+	if len(opts.TokenBytes) == 0 {
 		return a.fail("Invalid response")
 	}
 
