@@ -32,7 +32,7 @@ paths:
     get:
       operationId: listOrganizations
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       responses:
         "200":
           description: List of organizations
@@ -54,7 +54,7 @@ paths:
           schema:
             type: integer
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       responses:
         "200":
           description: Paginated list of emails
@@ -68,7 +68,7 @@ paths:
           schema:
             type: string
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       responses:
         "200":
           description: Unread count
@@ -87,7 +87,7 @@ paths:
           schema:
             type: string
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       responses:
         "200":
           description: Email detail
@@ -105,7 +105,7 @@ paths:
           schema:
             type: string
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       responses:
         "204":
           description: Deleted
@@ -133,10 +133,90 @@ paths:
                 read:
                   type: boolean
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       responses:
         "200":
           description: Marked as read/unread
+  /api/organizations/{orgId}/smtp/tokens:
+    get:
+      operationId: getTokenList
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of Tokens for Organisation
+      security:
+        - bearerAuth: [ ]
+    post:
+      operationId: createNewSmtpToken
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                expires_at:
+                  type: string
+                  format: date-time
+      responses:
+        "201":
+          description: Token Created
+      security:
+        - bearerAuth: [ ]
+  /api/organizations/{orgId}/smtp/tokens/{tokenId}:
+    get:
+      operationId: getSmtpToken
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: tokenId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Token detail
+        "404":
+          description: Token not Found
+      security:
+        - bearerAuth: [ ]
+
+    delete:
+      operationId: deleteSmtpToken
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: tokenId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Token deleted
+      security:
+        - bearerAuth: [ ]
+
 components:
   securitySchemes:
     bearerAuth:

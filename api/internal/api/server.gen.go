@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/oapi-codegen/runtime"
@@ -37,11 +38,20 @@ type MarkReadJSONBody struct {
 	Read *bool `json:"read,omitempty"`
 }
 
+// CreateNewSmtpTokenJSONBody defines parameters for CreateNewSmtpToken.
+type CreateNewSmtpTokenJSONBody struct {
+	Description *string    `json:"description,omitempty"`
+	ExpiresAt   *time.Time `json:"expires_at,omitempty"`
+}
+
 // AuthLoginJSONRequestBody defines body for AuthLogin for application/json ContentType.
 type AuthLoginJSONRequestBody AuthLoginJSONBody
 
 // MarkReadJSONRequestBody defines body for MarkRead for application/json ContentType.
 type MarkReadJSONRequestBody MarkReadJSONBody
+
+// CreateNewSmtpTokenJSONRequestBody defines body for CreateNewSmtpToken for application/json ContentType.
+type CreateNewSmtpTokenJSONRequestBody CreateNewSmtpTokenJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -66,6 +76,18 @@ type ServerInterface interface {
 
 	// (PUT /api/organizations/{orgId}/emails/{id}/read)
 	MarkRead(w http.ResponseWriter, r *http.Request, orgId string, id string)
+
+	// (GET /api/organizations/{orgId}/smtp/tokens)
+	GetTokenList(w http.ResponseWriter, r *http.Request, orgId string)
+
+	// (POST /api/organizations/{orgId}/smtp/tokens)
+	CreateNewSmtpToken(w http.ResponseWriter, r *http.Request, orgId string)
+
+	// (DELETE /api/organizations/{orgId}/smtp/tokens/{tokenId})
+	DeleteSmtpToken(w http.ResponseWriter, r *http.Request, orgId string, tokenId string)
+
+	// (GET /api/organizations/{orgId}/smtp/tokens/{tokenId})
+	GetSmtpToken(w http.ResponseWriter, r *http.Request, orgId string, tokenId string)
 
 	// (GET /api/users/me/organizations)
 	ListOrganizations(w http.ResponseWriter, r *http.Request)
@@ -107,6 +129,26 @@ func (_ Unimplemented) GetEmail(w http.ResponseWriter, r *http.Request, orgId st
 
 // (PUT /api/organizations/{orgId}/emails/{id}/read)
 func (_ Unimplemented) MarkRead(w http.ResponseWriter, r *http.Request, orgId string, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (GET /api/organizations/{orgId}/smtp/tokens)
+func (_ Unimplemented) GetTokenList(w http.ResponseWriter, r *http.Request, orgId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (POST /api/organizations/{orgId}/smtp/tokens)
+func (_ Unimplemented) CreateNewSmtpToken(w http.ResponseWriter, r *http.Request, orgId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (DELETE /api/organizations/{orgId}/smtp/tokens/{tokenId})
+func (_ Unimplemented) DeleteSmtpToken(w http.ResponseWriter, r *http.Request, orgId string, tokenId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (GET /api/organizations/{orgId}/smtp/tokens/{tokenId})
+func (_ Unimplemented) GetSmtpToken(w http.ResponseWriter, r *http.Request, orgId string, tokenId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -368,6 +410,152 @@ func (siw *ServerInterfaceWrapper) MarkRead(w http.ResponseWriter, r *http.Reque
 	handler.ServeHTTP(w, r)
 }
 
+// GetTokenList operation middleware
+func (siw *ServerInterfaceWrapper) GetTokenList(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTokenList(w, r, orgId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateNewSmtpToken operation middleware
+func (siw *ServerInterfaceWrapper) CreateNewSmtpToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateNewSmtpToken(w, r, orgId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteSmtpToken operation middleware
+func (siw *ServerInterfaceWrapper) DeleteSmtpToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "tokenId" -------------
+	var tokenId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tokenId", chi.URLParam(r, "tokenId"), &tokenId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tokenId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteSmtpToken(w, r, orgId, tokenId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSmtpToken operation middleware
+func (siw *ServerInterfaceWrapper) GetSmtpToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orgId" -------------
+	var orgId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orgId", chi.URLParam(r, "orgId"), &orgId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orgId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "tokenId" -------------
+	var tokenId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tokenId", chi.URLParam(r, "tokenId"), &tokenId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tokenId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSmtpToken(w, r, orgId, tokenId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListOrganizations operation middleware
 func (siw *ServerInterfaceWrapper) ListOrganizations(w http.ResponseWriter, r *http.Request) {
 
@@ -521,6 +709,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/organizations/{orgId}/emails/{id}/read", wrapper.MarkRead)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/organizations/{orgId}/smtp/tokens", wrapper.GetTokenList)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/organizations/{orgId}/smtp/tokens", wrapper.CreateNewSmtpToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/organizations/{orgId}/smtp/tokens/{tokenId}", wrapper.DeleteSmtpToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/organizations/{orgId}/smtp/tokens/{tokenId}", wrapper.GetSmtpToken)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/users/me/organizations", wrapper.ListOrganizations)
