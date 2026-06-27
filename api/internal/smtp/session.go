@@ -3,6 +3,7 @@ package smtp
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -174,6 +175,12 @@ func persistMailInDb(s *Session) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	headers := make(map[string][]string)
+	for _, key := range s.msg.envelope.GetHeaderKeys() {
+		headers[key] = s.msg.envelope.GetHeaderValues(key)
+	}
+	headersJson, _ := json.Marshal(headers)
+
 	_, err := s.q.InsertEmail(ctx, queries.InsertEmailParams{
 		OrganizationID: s.orgId,
 		SmtpUsername:   s.smtpUsername,
@@ -182,7 +189,7 @@ func persistMailInDb(s *Session) error {
 		Subject:        s.msg.envelope.GetHeader("Subject"),
 		BodyHtml:       s.msg.envelope.HTML,
 		BodyText:       s.msg.envelope.Text,
-		HeadersJson:    []byte("{}"),
+		HeadersJson:    headersJson,
 		RawEml:         string(s.msg.Data),
 		HasAttachments: len(s.msg.envelope.Attachments) > 0,
 		SizeBytes:      int32(len(s.msg.Data)),
