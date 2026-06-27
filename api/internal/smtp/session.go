@@ -179,9 +179,12 @@ func persistMailInDb(s *Session) error {
 	for _, key := range s.msg.envelope.GetHeaderKeys() {
 		headers[key] = s.msg.envelope.GetHeaderValues(key)
 	}
-	headersJson, _ := json.Marshal(headers)
+	headersJson, err := json.Marshal(headers)
+	if err != nil {
+		headersJson = []byte("{}")
+	}
 
-	_, err := s.q.InsertEmail(ctx, queries.InsertEmailParams{
+	_, err = s.q.InsertEmail(ctx, queries.InsertEmailParams{
 		OrganizationID: s.orgId,
 		SmtpUsername:   s.smtpUsername,
 		MailFrom:       s.msg.From,
