@@ -72,10 +72,13 @@ func (a *XOAuth2Server) Next(response []byte) (challenge []byte, done bool, err 
 	}
 
 	tokenBytes, found := bytes.CutPrefix(parts[1], []byte(XOAuthTokenKey))
-	if !found || !bytes.HasPrefix(tokenBytes, []byte(XOAuthBearerPrefix)) {
+	if !found {
 		return a.fail("Invalid response")
 	}
-	tokenBytes = bytes.TrimPrefix(tokenBytes, []byte(XOAuthBearerPrefix))
+	tokenBytes, found = bytes.CutPrefix(tokenBytes, []byte(XOAuthBearerPrefix))
+	if !found {
+		return a.fail("Invalid response")
+	}
 
 	opts := XOAuth2Options{
 		TokenBytes: string(tokenBytes),

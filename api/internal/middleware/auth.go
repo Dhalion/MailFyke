@@ -31,12 +31,12 @@ func Auth(jwtSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			auth := r.Header.Get("Authorization")
-			if auth == "" || !strings.HasPrefix(auth, "Bearer ") {
+
+			tokenStr, found := strings.CutPrefix(auth, "Bearer ")
+			if !found {
 				httputil.WriteError(w, http.StatusUnauthorized, "missing or invalid authorization header")
 				return
 			}
-
-			tokenStr := strings.TrimPrefix(auth, "Bearer ")
 			token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
 				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 					return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
